@@ -1,68 +1,86 @@
 function start_game() {
+  // clear puyo list
+  puyo_list = [];
   // initialise board_matrix
   init_matrix(board_matrix);
   // initialise canvas
   board.start();
-  // draw board/grid
-  draw_board();
-  draw_grid();
-
-  var puyo_test = new puyo("red", 20, 20);
-  var puyo_test2 = new puyo("blue", 20, 110);
-  var puyo_test3 = new puyo("blue", 65, 110);
-  var puyo_test4 = new puyo("blue", 20, 200);
-  var puyo_test5 = new puyo("blue", 65, 200);
 }
 
-function updateboard() {
+function restart() {
+  stop();
   board.reset();
-  for (let i = 0; i < puyo.instances.length; ++i) {
-    let curr = puyo.instances[i];
-    let r_index = (curr.y - 42.5) / 45;
-    let c_index = (curr.x - 42.5) / 45;
+  start_game();
+}
 
-    // check if falling
-    if (board_matrix[r_index + 1][c_index] === "X") {
-      board_matrix[r_index][c_index] = "X";
-      board_matrix[r_index + 1][c_index] = curr;
-      curr.y += 45;
+function stop() {
+  clearInterval(board.board_interval);
+  clearInterval(board.move_interval);
+  document.body.removeEventListener("keydown", event_handler);
+}
+
+function event_handler(event) {
+  var key_pressed = event.key;
+
+  if (!curr_pair[0].falling || !curr_pair[1].falling) {
+    return;
+  }
+
+  if (key_pressed === "a" || key_pressed === "ArrowLeft") {
+    if (curr_pair[0].c_index > 0 && curr_pair[1].c_index > 0) {
+      move_pair(0);
     }
-
-    // check if flooded
-    let flooded = flood_check(r_index, c_index, curr.colour);
-    if (Array.isArray(flooded)) {
-      setTimeout(function() {
-        for (let j = 0; j < flooded.length; ++j) {
-          board_matrix[(flooded[j].y - 42.5) / 45][(flooded[j].x - 42.5) / 45] = "X";
-          flooded[j].destroy();
-        }
-      }, 100);
+  } else if (key_pressed === "s" || key_pressed === "ArrowDown") {
+    if (curr_pair[0].r_index < 13 &&
+      curr_pair[1].r_index < 13) {
+        move_pair(1);
+      }
+  } else if (key_pressed === "d" || key_pressed === "ArrowRight") {
+    if (curr_pair[0].c_index < 5 && curr_pair[1].c_index < 5) {
+      move_pair(2);
     }
-
-    curr.update();
+  } else if (key_pressed === " ") {
+    rotate_pair();
   }
 }
 
-function flood_check(row, col, colour) {
-  var copy = [];
-  init_matrix(copy);
+function move_pair(n) {
+  var puyo1 = curr_pair[0];
+  var puyo2 = curr_pair[1];
+  var r_mod = 0;
+  var c_mod = 0;
 
-  function recur(row, col) {
-    if (col > 5 || col < 0 || row > 11 || row < 0 || typeof board_matrix[row][col] !== 'object' ||
-      board_matrix[row][col].colour !== colour || copy[row][col] === "flood") {
-      return [];
-    }
-
-    copy[row][col] = "flood";
-    var result = new Array(board_matrix[row][col]);
-
-    var left = recur(row, col - 1);
-    var right = recur(row, col + 1);
-    var up = recur(row - 1, col);
-    var down = recur(row + 1, col);
-    return result.concat(left, right, up, down);
+  if (n === 0) {
+    c_mod = -1;
+  } else if (n === 2) {
+    c_mod = 1;
+  } else if (n === 1) {
+    r_mod = 1;
   }
-  var cells = recur(row, col);
-  console.log(cells);
-  return cells.length >= 4 ? cells : "X";
+
+  if (c_mod === 0 || (board_matrix[puyo1.r_index + r_mod][puyo1.c_index + c_mod] === "X"
+  && board_matrix[puyo2.r_index + r_mod][puyo2.c_index + c_mod] === "X")) {
+      move_puyo(puyo1, r_mod, c_mod);
+      move_puyo(puyo2, r_mod, c_mod);
+  }
+}
+
+function rotate_pair() {
+  var puyo1 = curr_pair[0];
+  var puyo2 = curr_pair[1];
+  var pos = [
+    [puyo1.r_index - 1, puyo1.c_index],
+    [puyo1.r_index, puyo1.c_index + 1],
+    [puyo1.r_index + 1, puyo1.c_index],
+    [puyo1.r_index, puyo1.c_index - 1]];
+
+  if (puyo1.r_index > puyo2.r_index) {
+    move_puyo(puyo2, 1, 1);
+  } else if (puyo1.r_index < puyo2.r_index) {
+    move_puyo(puyo2, -1, -1);
+  } else if (puyo1.c_index > puyo2.c_index) {
+    move_puyo(puyo2, -1, 1);
+  } else {
+    move_puyo(puyo2, 1, -1);
+  }
 }

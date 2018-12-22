@@ -3,9 +3,12 @@ var board = {
   start : function() {
     this.canvas.width = 310;
     this.canvas.height = 580;
+    this.canvas.id = "board";
     this.context = this.canvas.getContext("2d");
     document.body.insertBefore(this.canvas, document.body.childNodes[0]);
-    this.interval = setInterval(updateboard, 1000);
+    this.board_interval = setInterval(update_board, 20);
+    this.move_interval = setInterval(update_pos, 700);
+    document.body.addEventListener("keydown", event_handler);
   },
   reset : function() {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
